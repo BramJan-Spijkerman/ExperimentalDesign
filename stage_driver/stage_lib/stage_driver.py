@@ -1,5 +1,3 @@
-
-
 from machine import Pin
 from .stepper import Stepper
 

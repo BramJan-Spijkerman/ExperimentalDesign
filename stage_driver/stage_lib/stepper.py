@@ -72,7 +72,3 @@ class Stepper:
                 self.step_pos += 1
             elif to_step < 0:
                 self.step_pos -= 1
-
-
-
-
