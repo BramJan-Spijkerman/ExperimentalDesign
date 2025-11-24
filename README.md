@@ -6,6 +6,7 @@
 - Micro Python example projects prvided by Arjan "mp_examples"
 - Analog dircovery control software "AD2_control"
 - Code for data analysis "analysis"
+- Dependencies
 
 
 ## TO DO
@@ -27,3 +28,8 @@
 ### Experimental control software
 - Make / test a PI-controler
 - Make / test the main experimental control program
+
+
+## Dependencies
+- mpremote
+- json
