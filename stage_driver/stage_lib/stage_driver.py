@@ -1,15 +1,15 @@
 from machine import Pin
-from .stepper import Stepper
+from stage_lib.stepper import Stepper
 
 
 class StageDriver(Stepper):
 
-    # Initializer
-    def __init__(self, dev_params: dict, step_pin: int, dir_pin: int, m0: int, m1: int, m2: int, limit0_pin: int, limit1_pin: int):
-        # Initialize Stepper super class
-        super().__init__(step_pin, dir_pin, m0, m1, m2)
+    # Initialize doing super and ading device parameters and limit switches
+    def __init__(self, dev_params: dict, step_pin: int, dir_pin: int, sleep_pin: int, reset_pin: int, m0: int, m1: int, m2: int, limit0_pin: int, limit1_pin: int):
+        # Initialize super class
+        super().__init__(step_pin, dir_pin, sleep_pin, reset_pin, m0, m1, m2)
 
-        # Unpackage device parameter dict to specify the delay stage
+        # Unpack device parameters
         self.id = dev_params["stage_id"]
         self.length = dev_params["length"]
         self.m = dev_params["m"]
@@ -18,65 +18,82 @@ class StageDriver(Stepper):
         self.limit0_pin = Pin(limit0_pin, Pin.IN, Pin.PULL_DOWN)
         self.limit1_pin = Pin(limit1_pin, Pin.IN, Pin.PULL_DOWN)
 
-        # Initialize position variable and move to zero position
+        # Initialize position and move to zero
         self.pos = 0
-        self.go_to_zero_pos()
+        self.moveToZeroPos()
 
 
-    # Method to move to the zero position
-    def go_to_zero_pos(self):
-        # Set the direction of the zero position
-        self.set_direction(0)
+    # Method to move to the starting edge of the stage
+    def moveToZeroPos(self):
+        # Set the correct direction
+        self.setDirection(1)
 
-        # While direction has not changed
-        while self.get_direction() == 0:
+        while self.readLimitSwitch(0) == 0:
+            self.step(1)
 
-            # Advance if limit switch not pressed
-            if not self.read_limit_switch(0):
-                self.step_to(1)
-
-            # Change direction and set position variable to zero if limit switch is pressed
-            elif self.read_limit_switch(0):
-                self.set_direction(1)
-                self.set_pos(0)
+            if self.readLimitSwitch(0) == 1:
+                self.setDirection(0)
 
 
-    # Manually set the position varible
-    def set_pos(self, pos: float):
+    # Manually set the position variable
+    def setPos(self, pos: float):
+        if pos > self.length or pos < 0:
+            print("Warning set position is out of bounds change not accepte!")
         self.pos = pos
 
 
-    # Retrun the position variable
-    def get_pos(self):
+    # Return current position
+    def getPos(self) -> float:
         return self.pos
 
 
-    # Read if the limit switch selected is pressed
-    def read_limit_switch(self, selected_switch: int):
-        if selected_switch == 0:
-            return self.limit0_pin.value()
-        if selected_switch == 1:
+    # Read the value of selected limit switch
+    def readLimitSwitch(self, switch: int):
+        if switch == 1:
             return self.limit1_pin.value()
+        elif switch == 0:
+            return self.limit0_pin.value()
+        else:
+            print("Warning selected switch does not exist!")
+        return None
 
 
-    # Method to move to some target position in mm
-    def move_to_pos(self, target_pos: float):
-        to_move = target_pos - self.pos
+    # Move to entered position
+    def move(self, target_pos: float):
+        if target_pos > self.length or target_pos < 0:
+            print("Warning targeted position is out of bounds for this stage not move is made!")
+            return
+
+        m = self.m
+        i = 0
 
         # Determine in which direction to move
-        if to_move < 0: self.set_direction(0)
-        if to_move > 0: self.set_direction(1)
+        to_move = target_pos - self.pos
+        if to_move < 0: self.setDirection(1)
+        if to_move > 0: self.setDirection(0)
 
-#        steps_to_take = self.m * abs(to_move) + self.b
+        # While target position is not reached move in that direction
+        while abs(to_move) > 0:
+            self.step(1)
+            to_move =- m
+            i =+ 1
 
-        # While target position is not reached 
-        while self.pos != target_pos:
-            # Advance if none of the limit switched are pressed
-            if not self.read_limit_switch(0) and not self.read_limit_switch(1):
-                self.step_to(1)
+        self.pos =+ i * m
 
-                # Update the position variable
-                if to_move < 0:
-                    self.pos -= 1 / self.m
-                elif to_move > 0:
-                    self.pos += 1 / self.m
+
+
+
+if __name__ == "__main__":
+
+    dev_params = {"stage_id": "stage1",
+                  "length": 1,
+                  "m": 1}
+
+    print("Initializing stage")
+    stage = StageDriver(dev_params, step_pin=14, dir_pin=15, sleep_pin=13, reset_pin=12, m0=9, m1=10, m2=11, limit0_pin=7, limit1_pin=8)
+    print("Stage moved to zero pos")
+
+    print("Move to 10mm")
+    stage.move(10)
+    print("Current direction: ", stage.getDirection())
+    print("Current position: ", stage.getPos())
