@@ -1,104 +1,111 @@
 from machine import Pin
 import utime
 
-
 class Stepper:
 
-    # Initializer stting the pins to control the motor andd some variables
-    def __init__(self, step_pin: int, dir_pin: int, sleep_pin: int, reset_pin: int, m0: int, m1: int, m2: int):
-        # Init pins from main controll
-        self.step_pin = Pin(step_pin, Pin.OUT)
-        self.dir_pin = Pin(dir_pin, Pin.OUT)
-        self.sleep_pin = Pin(sleep_pin, Pin.OUT)
-        self.reset_pin = Pin(reset_pin, Pin.OUT)
-        # Pins for step size
-        self.m0 = Pin(m0, Pin.OUT)
-        self.m1 = Pin(m1, Pin.OUT)
-        self.m2 = Pin(m2, Pin.OUT)
+	# Initialize control, internal variables and default settings
+	def __init__(self, step_pin: int, dir_pin: int, sleep_pin: int, reset_pin: int, m0: int, m1: int, m2: int):
+		# Init main control pins
+		self.step_pin = Pin(step_pin, Pin.OUT)
+		self.dir_pin = Pin(dir_pin, Pin.OUT)
+		self.sleep_pin = Pin(sleep_pin, Pin.OUT)
+		self.reset_pin = Pin(reset_pin, Pin.OUT)
 
-        # Turn of sleep mode and stop resetting
-        self.sleep_pin.value(1)
-        self.reset_pin.value(1)
-        utime.sleep(0.2)
+		# Init step size pins
+		self.m0 = Pin(m0, Pin.OUT)
+		self.m1 = Pin(m1, Pin.OUT)
+		self.m2 = Pin(m2, Pin.OUT)
 
-        # Initialize direction and position variables
-        self.direction = 0
-        self.delay = 1
-        self.minimum_delay = 1 / 500
+		# Prevent sleep and reset mode
+		self.sleep_pin.value(1)
+		self.reset_pin.value(1)
+		utime.sleep(0.2)	# Wait for operation to complete
 
-        # Set stepsize to full steps
-        self.setStepSize(0, 0, 0)
+		# Init default direction, delay and minimum values
+		self.direction = 0
+		self.delay = 1
+		self.minimum_delay = 1
 
-
-    # Set step size of the motor
-    def setStepSize(self, m0: int, m1: int, m2: int):
-        self.m0.value(m0)
-        self.m1.value(m1)
-        self.m2.value(m2)
+		# Set step size to full steps
+		self.setStepSize(0, 0, 0)
 
 
-    # Set rotation speed by setting the delay between toggeling the step pin
-    def setSpeed(self, speed: float):
-        self.delay = 1 / abs(speed)
-        if self.delay < self.minimum_delay:
-            self.delay = self.minimum_delay
-            print("Warning chosed speed to large speed set to minimum!")
+	# Set motor step size
+	def setStepSize(self, m0: int, m1: int, m2: int) -> None:
+		self.m0.value(m0)
+		self.m1.value(m1)
+		self.m2.value(m2)
 
 
-    # Stop all movement
-    def reset(self):
-        self.reset_pin.value(0)
-        utime.sleep(0.2)
-        self.reset_pin.value(1)
+	# Set rotation speed
+	def setSpeed(self, speed: float) -> str:
+		delay = 1/abs(speed)
+		if delay < self.minimum_delay:
+			self.delay = self.minimum_delay
+			return "error", "speed to large"
+		else:
+			self.delay = delay
+			return "ok", f"speed set to: {speed}"
 
 
-    # Toggle sleep mode
-    def sleep(self, value: int):
-        if value != 0 and value != 1:
-            print("Warning invalid direction choose either 1 or 0!")
-            return
-        self.sleep_pin.value(value)
+	# Reset the stepper driver
+	def reset(self) -> None:
+		self.reset_pin.value(0)
+		utime.sleep(0.5)
+		self.reset_pin.value(1)
 
 
-    # Change the direction
-    def setDirection(self, value: int):
-        self.direction = value
+	# Set the stepper driver to sleep mode
+	def sleep(self, value: int) -> None:
+		self.sleep_pin.value(value)
 
 
-    # Get the direction variable
-    def getDirection(self) -> int:
-        return self.direction
+	# Set stepper direction
+	def setDirection(self, value: int) -> str | None:
+		if value != 0 and value != 1:
+			return "invalid direction"
+
+		self.direction = value
+		self.dir_pin.value(value)
 
 
-    # Move the stepper N times in the direction of self.direction
-    def step(self, N_steps: int):
-        for i in range(N_steps):
-            self.step_pin.value(1)
-            utime.sleep_ms(self.delay)
-            self.step_pin.value(0)
-            utime.sleep_ms(self.minimum_delay)
+	# Get the direction variable
+	def getDirection(self) -> int:
+		return self.direction
+
+
+	# Move the stepper N time
+	def step(self, N_steps: int) -> None:
+		for i in range(N_steps):
+			self.step_pin.value(1)
+			utime.sleep_ms(self.delay)
+			self.step_pin.value(0)
+			utime.sleep_ms(self.minimum_delay)
 
 
 
-
+# Test stepper
 if __name__ == "__main__":
 
-    stepper = Stepper(step_pin=14, dir_pin=15, sleep_pin=13, reset_pin=12, m0=9, m1=10, m2=11)
+	print("\nStarting tests\n")
+	stepper = Stepper(step_pin=14, dir_pin=15, sleep_pin=13, reset_pin=12, m0=9, m1=10, m2=11)
 
-    print("Stepping")
-    stepper.step(100)
-    utime.sleep(0.5)
-    print("Changing speed")
-    stepper.setSpeed(500)
-    print("Current direction: ", stepper.getDirection())
-    print("changing direction")
-    stepper.setDirection(1)
-    print("Current direction: ", stepper.getDirection())
-    print("Stepping")
-    stepper.step(100)
-    print("Changing step size")
-    stepper.setStepSize(1, 1, 1)
-    print("Stepping")
-    stepper.step(100)
-    print("Resetting")
-    stepper.reset()
+	direction = stepper.getDirection()
+	print("Current direction: {direction}")
+	print("Stepping 1000 steps")
+	stepper.step(1000)
+	print("Changing direction")
+	stepper.setDirection(1)
+	print(f"Current direction: {stepper.getDirection()}")
+	print("Stepping 1000 steps")
+	stepper.step(1000)
+	print("Changing step size")
+	stepper.setStepSize(1, 0, 0)
+	print("Stepping 1000 steps")
+	stepper.step(1000)
+	print("Changing speed")
+	stepper.setSpeed(10)
+	print("Stepping 1000 steps")
+	stepper.step(1000)
+
+	print("\nTests ended\n")
