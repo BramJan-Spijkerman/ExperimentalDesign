@@ -2,9 +2,9 @@ from ctypes import *
 from .dwfconstants import *
 import sys
 
-if sys.platform.startswith("win")
+if sys.platform.startswith("win"):
 	dwf = cdll.dwf
-elif sys.platform.startswith("darwin")
+elif sys.platform.startswith("darwn"):
 	dwf = cdll.LoadLibrary("/Library/Frameworks/dwf.framework/dwf")
 else:
 	dwf = cdll.LoadLibrary("libdwf.so")
@@ -18,18 +18,18 @@ def printLastError(loc: str="Error location not defined"):
 
 
 # Function to check is a specific bit is set to true
-def is_bit_set(bit_field: c_int(), bit: int) -> bool:
+def is_bit_set(bit_field: c_int, bit: int) -> bool:
 	return (bit_field.value >> bit) & 1 == 1
 
 
 # Function to parse the bit field of suportedd acquisition modes
-def returnAcqModeSup(mode_types: c_int()) -> list[str]:
+def returnAcqModeSup(mode_types: c_int) -> list[str]:
 	acq_modes = ["single_acq", "scan_shift", "scan_screen", "single_buffer"]
 
 	suported_types = []
 	for i in range(len(acq_modes)):
 		if is_bit_set(mode_types, i) == True
-			suported_types.append(acq_modes[str(i)])
+			suported_types.append(acq_modes[i])
 	return suported_types
 
 
@@ -44,7 +44,7 @@ def parseSelectedAcqMode(acq_mode: str) -> :
 
 
 # Function to parse the bit fild of suported filter types
-def returnFilterSup(mode_types: c_int()) -> list[str]:
+def returnFilterSup(mode_types: c_int) -> list[str]:
 	filter_types = ["Decimate", "Average", "MinMax"]
 
 	suported_types = []
@@ -64,13 +64,14 @@ def parseSelectedFilterType(filter_type: str) -> :
 
 
 # Function to parse the bit field of suported trigger types
-def returnTrigSup(mode_types: c_int()) -> list[str]:
+def returnTrigSup(mode_types: c_int) -> list[str]:
 	trigger_types = ["None", "PC", "DetectorAnalogIn", "DetectorDigitalIn", "AnalogIn", "DigitalIn", "DigitalOut", "AnalogOut1", "AnalogOut2", "AnalogOut3", "AnalogOut4", "Extrnal1", "Extrnal2", "Extrnal3", "Extrnal4"]
 
 	suported_types = []
-	for i in range(len(tigger_types)):
+	for i in range(len(trigger_types)):
 		if is_bit_set(mode_types, i) == True:
 			suported_types.append(trigger_types[i])
+	return trigger_types
 
 
 # Function to return the selectd trigger type by name
@@ -79,7 +80,9 @@ def parseSelectedTrigType(trigger_type: str) -> :
 					"PC": trigsrcPC,
 					"DetectorAnalogIn": trigsrcDetectorAnalogIn,
 					"DetectorDigitalIn": trigsrcDetectorDigitalIn,
-					"DigitalOut": trigsrcDetectorDigitalOut,
+					"AnalogIn": trigsrcAnalogIn,
+					"DigitalIn": trigsrcDigitalIn,
+					"DigitalOut": trigsrcDigitalOut,
 					"AnalogOut1": trigsrcAnalogOut1,
 					"AnalogOut2": trigsrcAnalogOut2,
 					"AnalogOut3": trigsrcAnalogOut3,
