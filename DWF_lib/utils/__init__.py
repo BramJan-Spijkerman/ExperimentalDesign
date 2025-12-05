@@ -1,5 +1,5 @@
 from ctypes import *
-from .dwfconstants import *
+from dwfconstants import *
 import sys
 
 if sys.platform.startswith("win"):
@@ -11,10 +11,16 @@ else:
 
 
 # Function to print last error msg
-def printLastError(loc: str="Error location not defined"):
+def printLastError(loc: str="Error location not defined") -> bool:
 	szerr = create_string_buffer(512)
+	initial = bytes(szerr)
+
 	dwf.FDwfGetLastErrorMsg(szerr)
-	print(f"{szerr.value.decode().strip()} {loc}")
+	if bytes(szerr) != initial:
+		print(f"{szerr.value.decode().strip()} {loc}")
+		return True
+	else:
+		return False
 
 
 # Function to check is a specific bit is set to true
@@ -28,13 +34,13 @@ def returnAcqModeSup(mode_types: c_int) -> list[str]:
 
 	suported_types = []
 	for i in range(len(acq_modes)):
-		if is_bit_set(mode_types, i) == True
+		if is_bit_set(mode_types, i) == True:
 			suported_types.append(acq_modes[i])
 	return suported_types
 
 
 # Function to return the selected acquisition mode by name
-def parseSelectedAcqMode(acq_mode: str) -> :
+def parseSelectedAcqMode(acq_mode: str):
 	acq_modes = {"single_acq": acqmodeSingle,
 				"scan_shift": acqmodeScanShift,
 				"scan_screen": acqmodeScanScreen,
@@ -55,7 +61,7 @@ def returnFilterSup(mode_types: c_int) -> list[str]:
 
 
 # Function to return the selected filter type by name
-def parseSelectedFilterType(filter_type: str) -> :
+def parseSelectedFilterType(filter_type: str):
 	filter_types = {"Decimate": filterDecimate,
 					"Average": filterAverage,
 					"MinMax": filterMinMax}
@@ -75,7 +81,7 @@ def returnTrigSup(mode_types: c_int) -> list[str]:
 
 
 # Function to return the selectd trigger type by name
-def parseSelectedTrigType(trigger_type: str) -> :
+def parseSelectedTrigType(trigger_type: str):
 	trigger_types = {"None": trigsrcNone,
 					"PC": trigsrcPC,
 					"DetectorAnalogIn": trigsrcDetectorAnalogIn,
@@ -94,7 +100,7 @@ def parseSelectedTrigType(trigger_type: str) -> :
 
 
 # Function to parse the device state bit field
-def returnDevState(device_state: c_int()) -> :
+def returnDevState(device_state: c_int()):
 	dev_states = [DwfStateReady, DwfStateArmed, DwfStateDone, DwfStateTriggered, DwfStateConfig, DwfStatePrefill, DwfStateNotDone, DwfStateWait]
 
 	states = []
