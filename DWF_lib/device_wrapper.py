@@ -1,4 +1,4 @@
-from .utils import *
+from utils import *
 
 
 
@@ -18,17 +18,16 @@ class DeviceWrapper:
 
 
 	# Open device at dev_idx
-	def open(self, dev_idx: int) -> c_int | None:
+	def open(self, dev_idx: int):
 		hdwf = c_int()
 		dwf.FDwfDeviceOpen(c_int(dev_idx), byref(hdwf))
 
-		if self.log == True and hdwf.value == hdwfNone.value:
+		if hdwf.value == hdwfNone.value:
 			error = printLastError(f"failed to open device at index {dev_idx}")
-			if error == True:
-				return None
-			else:
-				print("Device opened Sucessfully")
-				return hdwf
+			quit()
+		else:
+			print("Device opened Sucessfully")
+			return hdwf
 
 
 	# Close device at dev_idx
@@ -47,7 +46,9 @@ class DeviceWrapper:
 
 
 if __name__ == "__main__":
+	import time
+
 	dev = DeviceWrapper(log=True)
 	dev_handler = dev.open(-1)
-
+	time.sleep(2)
 	dev.close(dev_handler)

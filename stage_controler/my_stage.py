@@ -1,10 +1,12 @@
 from dev_proto import DevProto
+import csv
+import os
 
 
 class MyStage(DevProto):
 
 	# Initialize super class and add callbacks
-    def __init__(self, dev_id: str, port: str, baudrate: int=115200):
+    def __init__(self, dev_id: str, port: str, save_to: str, baudrate: int=115200):
         super().__init__(dev_id, port, baudrate)
 
         # Register callbacks
@@ -15,10 +17,14 @@ class MyStage(DevProto):
         self.registerCallback("stepsize_change", self.stepSizeChangeHanddler)
         self.registerCallback("stepsize_request", self.getStepSizeHandler)
 
+        # Set file to write to
+        self.log_file = save_to
+        self._create_file()
 
     # Handle move response
     def moveHandler(self, msg: dict) -> None:
         print(f"[{msg["dev_id"]}] \nreported: {msg["message"]} \ntarget position: {msg["target_position"]} \ncurrent position: {msg["current_position"]} \nstatus: {msg["status"]}\n")
+        self._write_to_log(msg["target_position"], msg.["current_position"])
 
 
     # Handle position ger response
@@ -72,8 +78,26 @@ class MyStage(DevProto):
 
 
 	# Send get step size command
-    def getStepSize(self):
+    def getStepSize(self) -> None:
         self.send(cmd_name="stepsize_request")
+
+
+    # Write to the log file
+    def _write_to_log(self, target_pos: str, actual_pos: str) -> None:
+         if not os.path.exists(self.log_file):
+            raise FileNotFoundError(f"{self.log_file} does not exist!")
+
+        with open(self.log_file, "r+") as file:
+            file.seek(0, 2)
+            writer = csv.writer(file)
+            writer.writerow([target_pos, actual_pos])
+
+
+    # Create the log file and write the header
+    def _create_file(self) -> None:
+        with open(self.log_file, "a", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["target_pos [mm]", "actual_pos[mm]"])
 
 
     def __enter__(self):
