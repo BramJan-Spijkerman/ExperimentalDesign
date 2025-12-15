@@ -41,7 +41,7 @@ class ScopeWrapper:
 		dwf.FDwfAnalogInTriggerLevelSet(self.hdwf, c_double(level))
 		dwf.FDwfAnalogInTriggerHysteresisSet(self.hdwf, c_double(hysteresis))
 
-		slope = DwfTriggerSlopeRise if edge_rising else DwfTriggerSlipeFall
+		slope = DwfTriggerSlopeRise if edge_rising else DwfTriggerSlopeFall
 		dwf.FDwfAnalogInTriggerConditionSet(self.hdwf, slope)
 		dwf.FDwfAnalogInTriggerFilterSet(self.hdwf, c_int(0))
 

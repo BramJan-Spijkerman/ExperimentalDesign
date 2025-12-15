@@ -27,28 +27,26 @@ from DWF_lib.scope_wrapper import ScopeWrapper
 from stage_controler.my_stage import MyStage
 from PID_controler.pid_controler import PIDControler
 from analysis.file_loger import Logger
-import matplotlib.pyplot as plt
-import numpy as np
 from datetime import datetime
 import os
 
 
 # make file directory and create unique name for file
-current_time = datetime.now().strftime("%d-%H-%M")
+curent_time = datetime.now()
 data_path = os.path.join(r"analysis/data", data_file)
 if not os.path.exists(data_path):
 	os.mkdir(data_path)
 
 
 # Create file names
-stage_file = os.path.join(data_path, "stage_log", "_step", current_time)
-scope_file = os.path.join(data_path, "scope_log", "_step", current_time)
+stage_file = os.path.join(data_path, "stage_log", current_time)
+scope_file = os.path.join(data_path, "scope_log", current_time)
 
 
-# Setting up Device controlers
-Scope = ScopeWrapper() 												# Scope
-Stage = MyStage("stage1", "COM4", stage_file) 						# Delay stage
-PIcontroler = PIDControler(Kp, Ki, 0, setpoint) 					# PID-controler
+# Setting up Device controlers 										 
+Scope = ScopeWrapper() 												# Scope 		 
+Stage = MyStage("stage1", "COM4", stage_file) 						# Delay stage 	 
+PIcontroler = PIDControler(Kp, Ki, 0, setpoint) 					# PID-controler  
 logger_scope = Logger(scope_file, ["Voltage"])						# File reader/writer for scope
 logger_stage = Logger(stage_file, ["target_pos", "current_pos"])	# File reader/writer for stage
 
@@ -74,13 +72,10 @@ def find_minimum(signal: float):
 		logger_scope.write([current_signal])
 
 
-# Reset stage
-Stage.reset()
-
 # For loop to get a number of zeros in 
 for i in range(number_of_cycles):
 	print("Taking measurement...")
-	voltage = float(np.mean(Scope.Acquire()))
+	voltage = np.mean(Scope.Acquire())
 	find_minimum(voltage)
 	print("Minimum found, proceding to find the next")
 	Stage.move("+10")
@@ -88,8 +83,8 @@ for i in range(number_of_cycles):
 
 
 # Perform prelimenary analysis
-scope_data = logger_scope.read()["Voltage"]
-stage_data = logger_stage.read()["actual_pos"]
+scope_data["Voltage"] = logger_scope.read()
+stage_data["actual_pos"] = logger_stage.read()
 
 # Plot data
 fig = plt.figure(figsize=(9, 5))
