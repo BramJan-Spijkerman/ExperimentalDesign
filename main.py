@@ -1,10 +1,11 @@
-#############################################################################
-# Expriment control variables										 	 	#
-#############################################################################
-sample_rate 		= 100_000_000		# Sample rate of the scope [Hz]  	#
-voltage_range 		= 5 				# Range of the scope 	   [V]   	#
-stage_com_port 		= "COM4" 			# Com port of the stage 		 	#
-data_file			= "first_order" 	# File in which to log stage data	#
+############################################################################
+# Expriment control variables										 	   #
+############################################################################
+sample_rate 		    = 100_000_000	# Sample rate of the scope [Hz] 	       #
+voltage_range 		= 5 				# Range of the scope 	   [V]   	   #
+stage_com_port 		= "COM4" 		# Com port of the stage 		 	       #
+data_file			= "first_order" 	# File in which to log stage data	   #
+N_shots 				= 10	 			# Amount of shots to average over 	   #
 #############################################################################
 
 
@@ -33,8 +34,8 @@ if not os.path.exists(data_path):
 
 
 # Create file names
-stage_file = data_path + "\stage_log_sweep" + current_time
-scope_file = data_path + "\scope_log_test" + current_time
+stage_file = data_path + "\stage_log_sweep" + current_time + ".csv"
+scope_file = data_path + "\scope_log_test" + current_time + ".csv"
 # reference_file =  os.path.join(data_path, "regerence_file", "_test", current_time)
 
 
@@ -63,8 +64,11 @@ x = []
 y = []
 # Function to set aproximately 1 step
 def step(i: int):
-	voltage = np.mean(Scope.Acquire())
-	logger_scope.write([voltage])
+	voltage = np.zeros(8124)
+	for i in range(N_shots):
+		voltage += np.mean(Scope.Acquire())
+		
+	logger_scope.write([voltage/N_shots])
 	Stage.move("+1")
 	
 	# Wait for stage to halt
