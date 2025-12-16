@@ -1,4 +1,4 @@
-from utils import *
+from .utils import *
 import numpy as np
 from scipy.signal import butter, filtfilt
 

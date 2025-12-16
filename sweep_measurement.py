@@ -34,6 +34,7 @@ if not os.path.exists(data_path):
 # Create file names
 stage_file = os.path.join(data_path, "stage_log", "_sweep", current_time)
 scope_file = os.path.join(data_path, "scope_log", "_sweep", current_time)
+reference_file =  os.path.join(data_path, "regerence_file", "_sweep", current_time)
 
 
 # Setting up Device controlers
@@ -41,6 +42,7 @@ Scope = ScopeWrapper() 												# Scope
 Stage = MyStage("stage1", "COM4", stage_file) 						# Delay stage
 logger_scope = Logger(scope_file, ["Voltage"])						# File reader/writer for scope
 logger_stage = Logger(stage_file, ["target_pos", "current_pos"])	# File reader/writer for stage
+logger_reference = Logger(reference_file, ["ref"])
 
 
 # Draw updateble plot
@@ -51,6 +53,10 @@ ax.set_xlabel("step [-]")
 ax.set_ylabel("Siganl [V]")
 fig.tight_layout()
 plt.show()
+
+for i in range(100):
+	reference_shot = np.mean(Scope.Acquire())
+	logger_reference.write([reference_shot])
 
 x = []
 y = []
@@ -75,7 +81,8 @@ for i in range(84000):
 
 
 # Preliminary analysis
-signal = logger_scope.read()["voltage"]
+background = np.mean(logger_reference["ref"])
+signal = logger_scope.read()["voltage"] - background
 stage_pos = logger_scope.read()["current_pos"]
 
 y = np.arccos(signal)

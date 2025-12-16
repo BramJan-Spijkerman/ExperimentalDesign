@@ -2,101 +2,104 @@
 # Expriment control variables										 	 	#
 #############################################################################
 sample_rate 		= 100_000_000		# Sample rate of the scope [Hz]  	#
-voltage_range 		= 10.0 				# Range of the scope 	   [V]   	#
+voltage_range 		= 5 				# Range of the scope 	   [V]   	#
 stage_com_port 		= "COM4" 			# Com port of the stage 		 	#
-Kp					= 1 				# Proportional PID-gain 		 	#
-Ki 					= 1 				# Integral PID-gain 			 	#
-setpoint 			= 0 				# Target point PID 				 	#
-thershold 			= 0.2 				# Allowed error in setpoint 	 	#
 data_file			= "first_order" 	# File in which to log stage data	#
-number_of_cycles	= 4					# Number of cycles in the progam	#
 #############################################################################
 
 
-"""
-Code to perform an experiment where the speed of light is measured by
-measureing the location of pointswhere the second order correlation
-function is zero
-"""
 
 
-#------------FROM HERE DO NOT TOUCH----------------------------------#
+
+
 
 # Dependencies
 from DWF_lib.scope_wrapper import ScopeWrapper
 from stage_controler.my_stage import MyStage
-from PID_controler.pid_controler import PIDControler
-from analysis.file_loger import Logger
+from analysis.filer_logger import Logger
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.stats import linregress
 from datetime import datetime
+import time
 import os
 
 
 # make file directory and create unique name for file
 current_time = datetime.now().strftime("%d-%H-%M")
-data_path = os.path.join(r"analysis/data", data_file)
+data_path = os.path.join(r"C:\Users\Bram_\Documents\GitHub\ExperimentalDesign\data", data_file)
 if not os.path.exists(data_path):
 	os.mkdir(data_path)
 
 
 # Create file names
-stage_file = os.path.join(data_path, "stage_log", "_step", current_time)
-scope_file = os.path.join(data_path, "scope_log", "_step", current_time)
+stage_file = data_path + "\stage_log_sweep" + current_time
+scope_file = data_path + "\scope_log_test" + current_time
+# reference_file =  os.path.join(data_path, "regerence_file", "_test", current_time)
 
 
 # Setting up Device controlers
 Scope = ScopeWrapper() 												# Scope
 Stage = MyStage("stage1", "COM4", stage_file) 						# Delay stage
-PIcontroler = PIDControler(Kp, Ki, 0, setpoint) 					# PID-controler
 logger_scope = Logger(scope_file, ["Voltage"])						# File reader/writer for scope
 logger_stage = Logger(stage_file, ["target_pos", "current_pos"])	# File reader/writer for stage
+# logger_reference = Logger(reference_file, ["ref"])
 
 
-# Finds a minimum in the correlation function using PI-controler
-def find_minimum(signal: float):
-	# Get the current signal
-	current_signal = signal
-
-	# Write the signal to file
-	logger_scope.write([current_signal])
-
-	# While threshold is not reached converge to setpoint
-	while thershold > current_signal:
-		# Compute amount to move from current signal
-		to_move = PIcontroler.compute(signal, 1)
-
-		# Move stage
-		Stage.move(f"+{to_move}")
-		# Measure signal
-		current_signal = np.mean(Scope.Acquire())
-		# Write current signal to file
-		logger_scope.write([current_signal])
-
-
-# Reset stage
-Stage.reset()
-
-# For loop to get a number of zeros in 
-for i in range(number_of_cycles):
-	print("Taking measurement...")
-	voltage = float(np.mean(Scope.Acquire()))
-	find_minimum(voltage)
-	print("Minimum found, proceding to find the next")
-	Stage.move("+10")
-
-
-
-# Perform prelimenary analysis
-scope_data = logger_scope.read()["Voltage"]
-stage_data = logger_stage.read()["actual_pos"]
-
-# Plot data
+# Draw updateble plot
 fig = plt.figure(figsize=(9, 5))
 ax = fig.add_subplot()
-ax.plot(stage_data, scope_data/max(scope_data), label="correlation function")
-ax.set_xlabel("Stage position [mm]")
-ax.set_ylabel("Normalized signal [-]")
+line, = ax.plot([], [])
+ax.set_xlabel("step [-]")
+ax.set_ylabel("Siganl [V]")
 fig.tight_layout()
+plt.show()
 
+# for i in range(100):
+# 	reference_shot = np.mean(Scope.Acquire())
+# # 	logger_reference.write([reference_shot])
+
+x = []
+y = []
+# Function to set aproximately 1 step
+def step(i: int):
+	voltage = np.mean(Scope.Acquire())
+	logger_scope.write([voltage])
+	Stage.move("+1")
+	
+	# Wait for stage to halt
+	time.sleep(10)
+
+	x.append(i)
+	y.append(voltage)
+	line.set_data(x, y)
+	ax.relim()
+	ax.autoscale_view()
+	plt.draw()
+
+
+
+# Do this for the length of the stage
+for i in range(210):
+	step(i)
+
+
+# Preliminary analysis
+# background = np.mean(logger_reference["ref"])
+signal = logger_scope.read()["Voltage"] #- background
+stage_pos = logger_scope.read()["current_pos"]
+
+y = np.arccos(signal)
+
+result = linregress(stage_pos*10**(-3), y)
+X = np.linspace(min(stage_pos), max(stage_pos), 10**3)
+
+fig = plt.figure(figsize=(9, 5))
+ax = fig.add_subplot()
+ax.scatter(stage_pos*10**(-3), y, label="data")
+ax.plot(X, result.slope*X+result.intercept, label="fit")
+ax.set_xlabel("stage position [m]")
+ax.set_ylabel("arccos(U) [V]")
+
+fig.tight_layout()
 plt.show()

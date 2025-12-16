@@ -17,7 +17,7 @@ class Logger:
 
 
 	# Read contents of file
-	def read(self) -> dict{str: NDArray}:
+	def read(self) -> dict[str: NDArray]:
 		rows = []
 		with open(self.target_file, "r", newline="") as file:
 			reader = csv.reader(file)
