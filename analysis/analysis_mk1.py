@@ -12,17 +12,17 @@ def moving_average(data, window_size):
 
 
 
-stage_file = r"C:\Users\Bram_\Documents\GitHub\ExperimentalDesign\data\first_order\stage_log_sweep16-16-40"
-scope_file = r"C:\Users\Bram_\Documents\GitHub\ExperimentalDesign\data\first_order\scope_log_test16-16-40"
+stage_file = r"C:\Users\Bram_\Documents\GitHub\ExperimentalDesign\data\first_order\stage_log_sweep17-14-02"
+# scope_file = r"C:\Users\Bram_\Documents\GitHub\ExperimentalDesign\data\first_order\scope_log_test16-16-40"
 
 stage_log = Logger(stage_file, ["target_pos [mm]", "actual_pos [mm]"])
-scope_log = Logger(scope_file, ["Voltage"])
+# scope_log = Logger(scope_file, ["Voltage"])
 
 stage_positions = stage_log.read()
-scope_signal = scope_log.read()
+# scope_signal = scope_log.read()
 
-optical_delay = stage_positions["actual_pos [mm]"] * 2
-signal = scope_signal["Voltage"]
+optical_delay = stage_positions["actual_pos [mm]"][:377] * 2
+signal = np.load(r"C:\Users\Bram_\Documents\GitHub\ExperimentalDesign\data\first_order\!!!.npy")[:377] #scope_signal["Voltage"]
 
 L = max(optical_delay) - min(optical_delay)
 N_k = len(optical_delay)
@@ -49,19 +49,22 @@ ax.grid()
 ax.set_xlabel("Optical delay [mm]")
 ax.set_ylabel("Signal strength [V]")
 ax.legend()
+ax.title.set_text("Raw data")
 
-# N = len(signal)
-# FFT = fft(signal)
-# FFT_amp = 1/N * abs(FFT[:N//2])
-# freq = fftfreq(N, 1.9995026315789473)[:N//2]
+N = len(signal)
+FFT = fft(signal)
+FFT_amp = 2/N * abs(FFT[:N//2])
+freq = fftfreq(N, 0.001)[:N//2]
 
-FFT_amp = abs(optical_dft(optical_delay, signal, k))
+DFT_amp = abs(optical_dft(optical_delay, signal, k))
 
 ax_fft = fig.add_subplot(gs[1, 0])
-ax_fft.plot(k, FFT_amp)
+# ax_fft.plot(k, DFT_amp)
+ax_fft.plot(FFT_amp)
 ax_fft.set_xlabel("reciplocal mm [1/mm]")
 ax_fft.set_ylabel("Amplitude [V]")
 ax_fft.grid()
+ax_fft.title.set_text("FFT raw data")
 
 fig.tight_layout()
 
@@ -72,6 +75,7 @@ ax.plot(optical_delay, np.arccos(signal))
 ax.set_xlabel("Optical delay [mm]")
 ax.set_ylabel("arccos(signal) [V]")
 ax.grid()
+ax.title.set_text("Arccos(signal)")
 fig.tight_layout()
 
 

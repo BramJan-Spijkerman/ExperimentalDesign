@@ -10,6 +10,9 @@ class ScopeWrapper:
 		self.sample_rate = sample_rate
 		self.buffer_size = buffer_size
 		self.voltage_range = voltage_range
+		
+		# Indicate scope is busy
+		self.busy: bool = False
 
 		self.nyq = self.sample_rate / 2
 
@@ -34,7 +37,7 @@ class ScopeWrapper:
 
 
 	# Config for the trigger
-	def trigger_cfg(self, level: float=0.0, hysteresis: float=0.02, edge_rising: bool=True, auto_timeout_s: float=10.0):
+	def trigger_cfg(self, level: float=0.1, hysteresis: float=0.02, edge_rising: bool=True, auto_timeout_s: float=10.0):
 
 		dwf.FDwfAnalogInTriggerSourceSet(self.hdwf, trigsrcDetectorAnalogIn)
 		dwf.FDwfAnalogInTriggerChannelSet(self.hdwf, c_int(self.channel))
@@ -49,6 +52,7 @@ class ScopeWrapper:
 
 
 	def Acquire(self):
+		self.busy = True
 		sts = c_byte()
 
 		# Arm scope
@@ -67,7 +71,8 @@ class ScopeWrapper:
 		# Read samples
 		buf = (c_double * n)()
 		dwf.FDwfAnalogInStatusData(self.hdwf, c_int(self.channel), buf, c_int(n))
-
+		
+		self.busy = False
 		return np.frombuffer(buf, dtype=np.float64)
 
 
@@ -84,39 +89,47 @@ class ScopeWrapper:
 
 
 if __name__ == "__main__":
-    Scope = ScopeWrapper()
-    data = Scope.Acquire()
-    time = np.arange(0, len(data))*10**6/Scope.sample_rate
-    Scope.close()
+	Scope = ScopeWrapper(voltage_range=5)
+	import time
+	data = np.zeros((8192))
+# 	for i in range(100):
+# 		data += Scope.Acquire()
+# 		time.sleep(1)
+	data = Scope.Acquire()
+		
+	data /= 100
+		
+	time = np.arange(0, len(data))*10**6/Scope.sample_rate
+	Scope.close()
 
-    N = len(data)
-    print(f"data points: {len(data)}")
+	N = len(data)
+	print(f"data points: {len(data)}")
 
-    import matplotlib.pyplot as plt
-    from matplotlib.gridspec import GridSpec
-    from numpy.fft import fft, fftfreq
+	import matplotlib.pyplot as plt
+	from matplotlib.gridspec import GridSpec
+	from numpy.fft import fft, fftfreq
 
-    FFT = fft(data)
-    FFT_amplitude = 1/N * abs(FFT[:N//2])
-    freq = fftfreq(N, 1/Scope.sample_rate)*10**(-6)
+	FFT = fft(data)
+	FFT_amplitude = 1/N * abs(FFT[:N//2])
+	freq = fftfreq(N, 1/Scope.sample_rate)*10**(-6)
 
-    print(f"Mean of signal: {np.mean(data)}")
-    print(f"Amplitude at 0 frequncy: {FFT_amplitude[0]}")
+	print(f"Mean of signal: {np.mean(data)}")
+	print(f"Amplitude at 0 frequncy: {FFT_amplitude[0]}")
 
-    fig = plt.figure(figsize=(10, 9))
-    gs = GridSpec(nrows=2, ncols=1)
+	fig = plt.figure(figsize=(10, 9))
+	gs = GridSpec(nrows=2, ncols=1)
 
-    ax_time = fig.add_subplot(gs[0, 0])
-    ax_time.plot(time, data, label="Time signal")
-    ax_time.set_xlabel("Time [µs]")
-    ax_time.set_ylabel("Voltage [V]")
-    ax_time.grid()
+	ax_time = fig.add_subplot(gs[0, 0])
+	ax_time.plot(time, data, label="Time signal")
+	ax_time.set_xlabel("Time [µs]")
+	ax_time.set_ylabel("Voltage [V]")
+	ax_time.grid()
 
-    ax_freq = fig.add_subplot(gs[1, 0])
-    ax_freq.plot(freq[:N//2], FFT_amplitude, label="Frequency signal")
-    ax_freq.set_xlabel("Frequency [MHz]")
-    ax_freq.set_ylabel("Amplitude [V]")
-    ax_freq.grid()
+	ax_freq = fig.add_subplot(gs[1, 0])
+	ax_freq.plot(freq[:N//2], FFT_amplitude, label="Frequency signal")
+	ax_freq.set_xlabel("Frequency [MHz]")
+	ax_freq.set_ylabel("Amplitude [V]")
+	ax_freq.grid()
 
-    fig.tight_layout()
-    plt.show()
+	fig.tight_layout()
+	plt.show()
