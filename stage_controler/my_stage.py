@@ -95,7 +95,7 @@ class MyStage(DevProto):
 			if not os.path.exists(self.log_file):
 				raise FileNotFoundError(f"{self.log_file} does not exist!")
     
-			with open(self.log_file, "r+") as file:
+			with open(self.log_file, "r+", newline="") as file:
 				file.seek(0, 2)
 				writer = csv.writer(file)
 				writer.writerow([target_pos, actual_pos])
@@ -106,7 +106,7 @@ class MyStage(DevProto):
 		if self.log_file:
 			with open(self.log_file, "a", newline="") as file:
 				writer = csv.writer(file)
-				writer.writerow(["target_pos [mm]", "actual_pos[mm]"])
+				writer.writerow(["target_pos [mm]", "actual_pos [mm]"])
 
 
 	def __enter__(self):

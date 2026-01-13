@@ -4,9 +4,9 @@
 sample_rate 		= 100_000_000		# Sample rate of the scope [Hz]  	#
 voltage_range 		= 5 				# Range of the scope 	   [V]   	#
 stage_com_port 		= "COM4" 			# Com port of the stage 		 	#
-data_file			= "first_order" 	# File in which to log stage data	#
+data_file			= "test_measurement"# File in which to log stage data	#
 delay_step 			= 1 				# Step in optical path delay 	    #
-N_cycles  			= 10 				# Number of measurement cycles 	    #
+N_cycles  			= 1 				# Number of measurement cycles 	    #
 stage_min 			= 1	 				# Minimum delay stage position 	 	#
 stage_max 			= 190				# Maximum delay stage position 	  	#
 #############################################################################
@@ -20,9 +20,9 @@ Note Always reset stage before doing the thing
 
 
 # Dependencies
-from DWF_lib import ScopeWrapper
-from stage_controler import MyStage
-from analysis import Logger
+from DWF_lib.scope_wrapper import ScopeWrapper
+from stage_controler.my_stage import MyStage
+from analysis.file_logger import Logger
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import linregress
@@ -32,7 +32,7 @@ import os
 
 
 # make file directory and create unique name for file
-current_time = datetime.now().strftime("%d-%H-%M")
+current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 data_path = os.path.join(r"C:\Users\Bram_\Documents\GitHub\ExperimentalDesign\data", data_file)
 if not os.path.exists(data_path):
 	os.mkdir(data_path)
@@ -50,15 +50,27 @@ Stage = MyStage("stage1", "COM4", stage_file) 						# Delay stage
 logger_scope = Logger(scope_file, ["Voltage"])						# File reader/writer for scope
 logger_stage = Logger(stage_file, ["target_pos", "current_pos"])	# File reader/writer for stage
 
+
 stage_pos = np.arange(stage_min, stage_max, delay_step/2)
 stage_pos = stage_pos[:-1]
-Voltage = np.zeros((len(stage_pos)-1))
+Voltage = np.zeros((len(stage_pos)))
 
 
 # Reset the stage
 Stage.reset()
 while Stage.is_moving:
 	time.sleep(0.1)
+	
+	
+def plot(x, y, step_nr):
+	fig = plt.figure()
+	ax = fig.add_subplot()
+	ax.plot(x[:step_nr], y[:step_nr])
+	ax.set_xlabel("Optical delay [mm]")
+	ax.set_ylabel("Signal [Au]")
+	ax.grid()
+	fig.tight_layout()
+	plt.show()
 
 
 # Function to step the delay stage
@@ -72,7 +84,7 @@ def step(i: int, move_type: str, j: int):
 	# Print info and move stage
 	print(f"Cyle: {j} / {N_cycles}    Step: {current_step} / {len(stage_pos)-1}")
 	Stage.move(f"={stage_pos[current_step]}")
-	
+
 	while Stage.is_moving:
 		time.sleep(0.1)
 	
@@ -84,7 +96,7 @@ def step(i: int, move_type: str, j: int):
 		time.sleep(0.1)
 		
 	# Make ugly graph to look at and keep away boredom
-	plt.plot(stage_pos, Voltage/j)
+	plot(stage_pos*2, Voltage/(j+1), current_step)
 	
 	# Write to scope log number, cycle
 	#logger_scope.write([@...@])
@@ -108,6 +120,8 @@ logger_scope.write([Voltage])
 
 Stage.close()
 Scope.close()
+
+plt.plot(stage_pos*2, Voltage)
 
 # # Preliminary analysis
 # # background = np.mean(logger_reference["ref"])

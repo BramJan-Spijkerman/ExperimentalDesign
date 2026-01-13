@@ -33,7 +33,7 @@ class ScopeWrapper:
 		dwf.FDwfAnalogInChannelRangeSet(self.hdwf, c_int(self.channel), c_double(self.voltage_range))
 
 		# Set trigger
-		self.trigger_cfg()
+		#self.trigger_cfg()
 
 
 	# Config for the trigger
